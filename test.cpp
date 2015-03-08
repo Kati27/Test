@@ -2,6 +2,7 @@
 #include <string.h>
 #include <iostream>
 #include <vector>
+#include <math.h>
 
 using namespace std;
 
@@ -20,13 +21,33 @@ unsigned int rgb2color(unsigned short rgb[3])
    return color ;
 } 
 
+int round(double number)
+{
+	double x = ceil(number);
+	if((x-number)<0.5)
+	{
+		number = x;
+
+	}
+	else
+	{
+		number = (int)number;
+	}
+
+	return number;
+}
+
+
 int main( int argc, char **argv )
 {
+	//Order of parameters ramp.exe display tl tr [bl] [br]
 	argv[1] = "display";
-	argv[2] = "0";
-	argv[3] = "2";
+	argv[2] = "90";
+	argv[3] = "90";
+	argv[4] = "10";
+	argv[5] = "10";
 
-	argc = 4;
+	argc = 6;
 		
 	Display display;
 	unsigned short arrColors[4] = {0};
@@ -79,24 +100,40 @@ int main( int argc, char **argv )
 
 	color2rgb (arrColors[0],newrgb);  //tl start value
 
+	double x1=0,x2= width-1;
+	double y1=0,y2=height-1;
+
 	for(int x =0;x<width;x++) // loop columns 
 	{ 
 		for(int y =0;y<height;y++) // loop rows
 		{  
-			//set pixel color
-			color = rgb2color(newrgb);
-			pixels[x+ y*width]  = color;
-			// calculate new color  
-			for(int i =0;i<=2;i++) 
+			// calculate new color using bilinear interpolation algorithmus 
+			for(int i =0;i<3;i++) 
 			{ 
-				newrgb[i]= 
-				rgb[0][i]*((width-x)*(height-y)/(width*height)) + 
-				rgb[1][i]*(x *(height-y)/(width*height)) + 
-				rgb[2][i]*((width-x)*y     /(width*height)) + 
-				rgb[3][i]*(x     *y     /(width*height)); 
+				double val; //rgb is only short
+				val =
+				(1.0/ ((x2 - x1)*(y2-y1)) ) * 
+				(rgb[2][i] * (x2-x )*(y2-y) + 
+				 rgb[3][i]* (x-x1)* (y2-y)  + 
+				 rgb[0][i] *(x2-x) *(y-y1)+
+				 rgb[1][i]* (x-x1)*(y-y1));
+
+				if(val != (int)val)
+				{
+					newrgb[i] = round(val);
+				}
+				else
+				{
+					newrgb[i] = val;
+				}
+
+				//set pixel color
+				color = rgb2color(newrgb);
+				pixels[x+ y*width]  = color;
 			} 
 		}
 	}
+
 
 	//write pixels into frameBuffer
 	for(int i =0;i<height;i++)
